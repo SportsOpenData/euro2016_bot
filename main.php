@@ -92,24 +92,45 @@ class mainloop{
 		return true;
 	}
 
+	function getPlayTime($now, $from) {
+		$diff = $now - $from;
+		if($diff <= 45) {
+			$ret_diff = ($diff/60).' min.';
+		} elseif($diff > 45 && $diff <= 60) {
+			$ret_diff = '45 min.';
+		} elseif($diff > 60 && $diff <= 105) {
+			$ret_diff = (($diff/60) - 15).' min.';
+		} else {
+			$ret_diff = '90 min.';
+		}
+
+		return $ret_diff;
+	}
+
 	function getLive($telegram, $chat_id) {
 
 		// Cerco i rounds disponibili per il torneo
 		$json_string = file_get_contents("http://soccer.sportsopendata.net/v1/leagues/uefa-euro-2016/seasons/16/rounds");
 		$parsed_json = json_decode($json_string, true);
+		$temp_c1="\n";
 		foreach($parsed_json['data']['rounds'] as $key=>$round){
 			$json_round_string = file_get_contents("http://soccer.sportsopendata.net/v1/leagues/uefa-euro-2016/seasons/16/rounds/".$round['round_slug']."/matches?date=today");
 			$parsed_round_json = json_decode($json_round_string, true);
 			$count = 0;
 			$countl = 0;
-			$temp_c1="\n";
 			$option=array();
 			foreach($parsed_round_json['data']['matches'] as $data=>$csv1){
 
 				$from = strtotime($csv1['date_match']);
 				$to = strtotime($csv1['date_match']+90*60);
+				$todaytime = strtotime($today);
 				if ($today >= $from && $today <= $to) {
-					$temp_c1 .="⚽️ ".$csv1['home']['team']."-".$csv1['away']['team']." : ".$csv1['match_result']."\n";
+					if($csv1['played']) {
+						$playtime = 'FT';
+					} else {
+						$playtime = getPlayTime($todaytime, $from);
+					}	
+					$temp_c1 .="⚽️ (".$playtime.") ".$csv1['home']['team']."-".$csv1['away']['team']." : ".$csv1['match_result']."\n";
 					$countl++;
 				}
 			}
